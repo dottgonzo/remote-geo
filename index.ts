@@ -98,11 +98,31 @@ interface IGeobuild {
 export default class Localize {
     world: IGeobuild[];
 
-    constructor(word?: IGeobuild[]) {
-        if (word) this.loadWorld(word)
+    constructor(world?: IGeobuild[]) {
+        if (world) this.loadWorld(world)
     }
 
-    loadWorld(word: IGeobuild[]) {
+    loadWorld(world: IGeobuild[]) {
+        this.world = world;
+    }
+
+    downloadWorld(o: { url: string }) {
+
+    }
+
+    loadState(state: Istate) {
+
+    }
+
+
+    downloadState(o: { url: string }) {
+
+    }
+
+
+    getStateFromPosition(o:{state:string,latitude:number,longitude:number}){
+
+
 
     }
 
