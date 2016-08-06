@@ -1,18 +1,20 @@
 import * as _ from "lodash";
 
-let geo = require("geolib");
+const geo = require("geolib");
+
+
+import * as superagent from "superagent";
+
 
 interface IBoundary {
-
     latitude: number;
     longitude: number;
-
 }
 
 interface IGeocodes {
     name: string;
     provinces: IGeo[];
-    cities: ICity[]
+    cities: ICity[];
 }
 
 
@@ -42,7 +44,6 @@ interface IGeo {
     main: ICity;
     latitude: number;
     longitude: number;
-
 }
 
 
@@ -58,13 +59,12 @@ interface Istate {
     country: string;
     subcontinent: string;
     continent: string;
-
 }
 
 interface ICountry {
     states: Istate[];
     name: string;
-    boundaries: IBoundary[];
+    boundaries: IBoundary[][];
     nativeName: string;
     capital: ICity;
     currencies: string[];
@@ -73,11 +73,9 @@ interface ICountry {
     tz: string;
     subcontinent: string;
     continent: string;
-
 }
 
 interface ISubcontinent {
-
     name: string;
     countries: ICountry[];
     boundaries: IBoundary[];
@@ -85,42 +83,210 @@ interface ISubcontinent {
 }
 
 interface IGeobuild {
-
     name: string;
     subcontinents: ISubcontinent[];
     boundaries: IBoundary[];
-
 }
 
 
-
+const w: IGeobuild[] = require("./onlyworld.json");
 
 export default class Localize {
     world: IGeobuild[];
+    remote: string;
 
-    constructor(world?: IGeobuild[]) {
-        if (world) this.loadWorld(world)
+    constructor(o?: { world?: IGeobuild[], remote?: string }) {
+        if (o && o.world) {
+            this.loadWorld(o.world)
+        } else {
+            this.loadWorld(w)
+        }
+
+        if (o && o.remote) this.remote = o.remote
+
     }
 
     loadWorld(world: IGeobuild[]) {
         this.world = world;
     }
 
-    downloadWorld(o: { url: string }) {
+
+
+    loadCountry(c: ICountry) {
+        const _this = this;
+        _.map(_this.world, function (continent) {
+            _.map(continent.subcontinents, function (subcontinent) {
+                _.map(subcontinent.countries, function (country) {
+                    if (c.name === country.name) {
+                        country = c
+                        return true
+                    }
+                })
+            })
+        })
+    }
+
+
+    downloadCountry(o: { url?: string, country: string }) {
+        const _this = this;
+        if (!o) {
+            throw Error("no options povided")
+        } else {
+            let url;
+            if (o.url) {
+                url = o.url;
+            } else if (_this.remote) {
+                url = _this.remote;
+            } else {
+                throw Error("no remote url povided")
+
+            }
+
+
+
+
+        }
+
 
     }
 
-    loadState(state: Istate) {
+    setCountryFromPosition(o: { latitude: number, longitude: number }) {
+
+        let _this = this;
+        if (_this.getCountryFromPosition(o)) {
+            _this.setCountry(_this.getCountryFromPosition(o))
+
+        } else {
+            throw Error("no state founded");
+
+        }
 
     }
 
+    setCountry(country: ICountry): boolean {
+        const _this = this;
 
-    downloadState(o: { url: string }) {
+        if (country) {
 
+            if (_this.world) {
+                let exists = false;
+
+                _.map(_this.world, function (continent) {
+                    _.map(continent.subcontinents, function (subcontinent) {
+                        _.map(subcontinent.countries, function (c) {
+                            if (c.name === country.name) {
+                                c = country
+                                exists = true
+                            }
+                        })
+                    })
+                })
+
+                if (exists) {
+                    console.log("set " + country.name);
+                } else {
+                    throw Error("no state " + country.name);
+
+                }
+
+            } else {
+                throw Error("no world");
+            }
+        } else {
+            throw Error("no state");
+        }
+
+        return true
     }
 
+    getCountryFromPosition(o: { latitude: number, longitude: number }): ICountry {
 
-    getStateFromPosition(o:{state:string,latitude:number,longitude:number}){
+        let pos = { latitude: o.latitude, longitude: o.longitude };
+
+        let _this = this;
+        let exists = false;
+        let c: ICountry;
+        let centers = [];
+
+
+
+
+        _.map(_this.world, function (continent) {
+            _.map(continent.subcontinents, function (subcontinent) {
+
+                _.map(subcontinent.countries, function (country) {
+
+                    _.map(country.boundaries, function (area) {
+                        if (!c) {
+
+                            if (typeof area[0][0] !== "object") {
+
+
+
+                                if (geo.isPointInside(pos, area)) {
+                                    exists = true;
+                                    c = country;
+
+                                } else {
+                                    centers.push({ nation: country.name, distance: geo.getDistance(geo.getCenterOfBounds(area), pos) })
+                                }
+
+
+                            } else {
+
+
+                                _.map(area, function (a) {
+
+                                    if (geo.isPointInside(pos, a)) {
+                                        exists = true;
+                                        c = country;
+
+                                    } else {
+                                        centers.push({ nation: country.name, distance: geo.getDistance(geo.getCenterOfBounds(a), pos) })
+                                    }
+
+                                })
+                            }
+                        }
+                    })
+
+
+                })
+
+            })
+
+        })
+
+        if (!exists) {
+            let dist: any = false;
+            _.map(centers, function (co) {
+                if (!dist || co.distance < dist.distance) {
+                    dist = co
+                }
+
+            })
+
+            _.map(_this.world, function (continent) {
+                _.map(continent.subcontinents, function (subcontinent) {
+                    _.map(subcontinent.countries, function (country) {
+                        if (dist.nation == country.name) {
+                            c = country
+                        }
+                    })
+                })
+            })
+
+        }
+
+
+
+
+
+
+
+
+
+        return c
 
 
 
@@ -141,10 +307,18 @@ export default class Localize {
 
 
         } else {
-            console.log('todo');
 
-            throw Error("todo");
 
+            const c = _this.getCountryFromPosition(o)
+
+            if (c.states && c.states.length === 1) {
+                State = c.states[0]
+            } else {
+
+                console.log('todo');
+
+                throw Error("todo");
+            }
 
         }
 
@@ -155,7 +329,6 @@ export default class Localize {
 
         _.map(allprovinces, function (c) {
             c.distance = geo.getDistance({ latitude: c.latitude, longitude: c.longitude }, pos);
-
         })
 
 
@@ -166,7 +339,6 @@ export default class Localize {
 
             _.map(_this.getCitiesFromProvinces(c.nativeName, State.name), function (p) {
                 p.distance = geo.getDistance({ latitude: p.latitude, longitude: p.longitude }, pos);
-
                 provinces.push(p)
             })
 
@@ -220,18 +392,13 @@ export default class Localize {
                             exists = true;
                             answer = s
                         }
-
-
                     })
 
                     if (!exists) {
                         answer = false
-
                     }
                 })
-
             })
-
         })
 
 
@@ -246,20 +413,16 @@ export default class Localize {
 
         if (state) {
             State = <Istate>_this.getState(state)
-
         } else {
             throw Error("todo");
-
         }
 
         let provinces: ICity[] = [];
+
         _.map(State.regions, function (r) {
             _.map(r.cities, function (c) {
-
                 provinces.push(c)
-
             })
-
         })
 
 
