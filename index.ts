@@ -2,11 +2,13 @@ import * as _ from "lodash";
 
 const geo = require("geolib");
 
+import * as Promise from "bluebird";
+
 
 import * as superagent from "superagent";
 
 
-interface IBoundary {
+interface IBoundary { //wrong
     latitude: number;
     longitude: number;
 }
@@ -89,127 +91,97 @@ interface IGeobuild {
 }
 
 
+interface ILocalization {
+    latitude: number;
+    longitude: number;
+}
+
 const w: IGeobuild[] = require("./onlyworld.json");
 
+
+function loadbBigWorldfromremotedb(url): Promise<IGeobuild[]> {
+    return new Promise<IGeobuild[]>((resolve, reject) => {
+
+        let bigWorld: IGeobuild[];
+
+        superagent.get(url).end(function (err, res) {
+            if (err || !res.ok) {
+
+                reject(err)
+
+            } else {
+                bigWorld = res.body.continents;
+                resolve(bigWorld)
+            }
+        })
+    })
+
+}
+
+function loadcontryremotely(url: string, countryName: string): Promise<ICountry> {
+    return new Promise<ICountry>((resolve, reject) => {
+
+        let country: ICountry;
+
+        superagent.post(url).send({ countryname: countryName }).end(function (err, res) {
+            if (err || !res.ok) {
+                reject(err)
+            } else {
+                country = res.body;
+                resolve(country)
+            }
+        })
+    })
+}
+
+
+
+
 export default class Localize {
+    bigWorld: IGeobuild[];
+    state: Istate;
     world: IGeobuild[];
     remote: string;
+    worldDB: string;
+    localization: ILocalization;
 
-    constructor(o?: { world?: IGeobuild[], remote?: string }) {
-        if (o && o.world) {
-            this.loadWorld(o.world)
+    constructor(o: { world?: IGeobuild[], bigWorld?: IGeobuild[], remote?: string, worldDB?: string, state?: Istate }) {
+        if (!o) throw Error("no conf");
+
+
+        if (o.bigWorld) {
+            this.bigWorld = o.bigWorld;
+            this.world = w;
+
         } else {
-            this.loadWorld(w)
-        }
 
-        if (o && o.remote) this.remote = o.remote
+            if (o.state) this.state = o.state;
 
-    }
-
-    loadWorld(world: IGeobuild[]) {
-        this.world = world;
-    }
-
-
-
-    loadCountry(c: ICountry) {
-        const _this = this;
-        _.map(_this.world, function (continent) {
-            _.map(continent.subcontinents, function (subcontinent) {
-                _.map(subcontinent.countries, function (country) {
-                    if (c.name === country.name) {
-                        country = c
-                        return true
-                    }
-                })
-            })
-        })
-    }
-
-
-    downloadCountry(o: { url?: string, country: string }) {
-        const _this = this;
-        if (!o) {
-            throw Error("no options povided")
-        } else {
-            let url;
-            if (o.url) {
-                url = o.url;
-            } else if (_this.remote) {
-                url = _this.remote;
+            if (o && o.world) {
+                this.world = o.world
             } else {
-                throw Error("no remote url povided")
+                this.world = w
+            }
 
+            if (o && o.remote) {
+                this.remote = o.remote
+            } else if (o && o.worldDB) {
+                this.worldDB = o.worldDB
             }
 
 
-
-
-        }
-
-
-    }
-
-    setCountryFromPosition(o: { latitude: number, longitude: number }) {
-
-        let _this = this;
-        if (_this.getCountryFromPosition(o)) {
-            _this.setCountry(_this.getCountryFromPosition(o))
-
-        } else {
-            throw Error("no state founded");
-
         }
 
     }
 
-    setCountry(country: ICountry): boolean {
-        const _this = this;
+    getCountryFromPosition(o: ILocalization): ICountry {
 
-        if (country) {
-
-            if (_this.world) {
-                let exists = false;
-
-                _.map(_this.world, function (continent) {
-                    _.map(continent.subcontinents, function (subcontinent) {
-                        _.map(subcontinent.countries, function (c) {
-                            if (c.name === country.name) {
-                                c = country
-                                exists = true
-                            }
-                        })
-                    })
-                })
-
-                if (exists) {
-                    console.log("set " + country.name);
-                } else {
-                    throw Error("no state " + country.name);
-
-                }
-
-            } else {
-                throw Error("no world");
-            }
-        } else {
-            throw Error("no state");
-        }
-
-        return true
-    }
-
-    getCountryFromPosition(o: { latitude: number, longitude: number }): ICountry {
-
-        let pos = { latitude: o.latitude, longitude: o.longitude };
+        let pos: ILocalization = { latitude: o.latitude, longitude: o.longitude };
 
         let _this = this;
         let exists = false;
         let c: ICountry;
         let centers = [];
-
-
-
 
         _.map(_this.world, function (continent) {
             _.map(continent.subcontinents, function (subcontinent) {
@@ -277,54 +249,81 @@ export default class Localize {
             })
 
         }
-
-
-
-
-
-
-
-
-
         return c
-
-
-
     }
 
-    getPosition(o: { latitude: number, longitude: number, state?: string }) {
 
-        if (!(o && o.latitude && o.longitude)) throw Error("Error");
-
-        let pos = { latitude: o.latitude, longitude: o.longitude };
-
+    checkifInsideState(pos: ILocalization): ICity[] | boolean {
         let _this = this;
-        let State: Istate;
-        if (o.state && _this.getState(o.state)) {
-            State = <Istate>_this.getState(o.state)
-            console.log('ss');
+        if (!this.state) throw Error("no state set");
 
+        let position = this.getPositionFromState(pos, _this.state);
 
-
+        if (position[0].distance < 20000) {
+            return position
         } else {
+            return false
+        }
+    }
 
 
-            const c = _this.getCountryFromPosition(o)
+    reloadCurrentState(o: ILocalization) { //todo
+        let _this = this;
+        return new Promise<boolean>((resolve, reject) => {
 
-            if (c.states && c.states.length === 1) {
-                State = c.states[0]
+            _this.getStates(o).then((s) => {
+                _this.state = s
+                resolve(true);
+            }).catch((err) => {
+                reject(err);
+            })
+
+
+
+        })
+    }
+
+    setPosition(pos: ILocalization): Promise<ICity[]> {
+        let _this = this;
+
+        return new Promise<ICity[]>((resolve, reject) => {
+            if (!(pos && pos.latitude && pos.longitude)) {
+                reject("No coords provided");
             } else {
 
-                console.log('todo');
 
-                throw Error("todo");
+                function reload() {
+                    _this.reloadCurrentState(pos).then(() => {
+                        _this.localization = pos;
+                        resolve(_this.getPositionFromState(pos));
+                    }).catch((err) => {
+                        reject(err);
+                    })
+                }
+
+                if (_this.state) {
+                    let checkifInsideState = _this.checkifInsideState(pos)
+                    if (checkifInsideState) {
+                        resolve(<ICity[]>checkifInsideState);
+                    } else {
+                        reload()
+                    }
+                } else {
+                    reload()
+                }
             }
+        })
+    }
 
-        }
 
+    getPositionFromState(pos: ILocalization, State?: Istate): ICity[] {
+        let _this = this;
 
         // livello nazionale
-        let allprovinces = _this.getProvincesFromState(State.name);
+        let allprovinces: ICity[] = _this.getProvincesFromState(State);
+
+
+
 
 
         _.map(allprovinces, function (c) {
@@ -337,7 +336,7 @@ export default class Localize {
         let provinces = [];
         _.map(reprov, function (c: ICity) {
 
-            _.map(_this.getCitiesFromProvinces(c.nativeName, State.name), function (p) {
+            _.map(_this.getCitiesFromProvinces(c.nativeName, State), function (p) {
                 p.distance = geo.getDistance({ latitude: p.latitude, longitude: p.longitude }, pos);
                 provinces.push(p)
             })
@@ -353,7 +352,6 @@ export default class Localize {
 
         return cities
 
-
     }
 
 
@@ -366,56 +364,75 @@ export default class Localize {
         return true
     }
 
-    getState(state: string, o?: { continent?: string }): Istate | boolean {
+
+    getStateFromCountry(pos: ILocalization, country: ICountry): Istate {
+
+        let state: Istate;
 
 
-        let exists = false;
+        if (country.states.length === 1) {
+            state = country.states[0]
+        } else {
+            console.log("todo")
 
-        let answer;
-
-        let _this = this;
-
-        if (!_this.world) {
-            console.error("no world");
-            return false
         }
 
-        _.map(_this.world, function (continent) {
 
-            _.map(continent.subcontinents, function (subcontinent) {
-
-                _.map(subcontinent.countries, function (country) {
-
-                    _.map(country.states, function (s) {
-                        console.log(s.name)
-                        if (s.name === state) {
-                            exists = true;
-                            answer = s
-                        }
-                    })
-
-                    if (!exists) {
-                        answer = false
-                    }
-                })
-            })
-        })
-
-
-        return answer
-
+        return state
     }
 
-    getProvincesFromState(state) {
 
+    getStates(pos: ILocalization): Promise<Istate> {
         let _this = this;
-        let State: Istate;
 
-        if (state) {
-            State = <Istate>_this.getState(state)
-        } else {
-            throw Error("todo");
-        }
+        return new Promise<Istate>((resolve, reject) => {
+
+            const country = _this.getCountryFromPosition(pos);
+
+
+            if (_this.bigWorld) {
+                _.map(_this.bigWorld, function (continent) {
+
+                    _.map(continent.subcontinents, function (subcontinent) {
+
+                        _.map(subcontinent.countries, function (c) {
+                            if (c.name === country.name) {
+                                resolve(_this.getStateFromCountry(pos, c))
+                            }
+                        })
+                    })
+                })
+
+            } else if (_this.remote) {
+
+
+
+
+
+            } else if (_this.worldDB) {
+
+                loadbBigWorldfromremotedb(_this.worldDB).then((world) => {
+                    _.map(world, function (continent) {
+                        _.map(continent.subcontinents, function (subcontinent) {
+                            _.map(subcontinent.countries, function (c) {
+                                if (c.name === country.name) {
+                                    resolve(_this.getStateFromCountry(pos, c))
+                                }
+                            })
+                        })
+                    })
+
+                })
+            }
+        })
+    }
+
+    getProvincesFromState(state?: Istate): ICity[] {
+        let _this = this;
+        let State: Istate = _this.state;
+
+        if (state) State = state
+
 
         let provinces: ICity[] = [];
 
@@ -430,18 +447,11 @@ export default class Localize {
 
     }
 
-    getCitiesFromProvinces(city, state?: string) {
-
+    getCitiesFromProvinces(city: string, state?: Istate): ICity[] {
         let _this = this;
-        let State: Istate;
+        let State: Istate = this.state;
 
-        if (state) {
-            State = <Istate>_this.getState(state)
-
-        } else {
-            throw Error("todo");
-
-        }
+        if (state) State = state
 
         let provinces: ICity[] = [];
         _.map(State.regions, function (r) {

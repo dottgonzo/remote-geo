@@ -4,12 +4,13 @@ import * as superagent from "superagent";
 
 
 
-        superagent.get(path + "/portfolio").auth(auth.user,auth.password).end(function (err,res) {
-            if (err || !res.ok) {
+superagent.get("https://couchdb.kernel.online/public/geoworld").end(function (err, res) {
+    if (err || !res.ok) {
 
-            console.error(err)
-  
-   } else{
-            let portfolio = res.body.stocks;
-            that.addStocks(portfolio)
-     }
+        console.error("err", err)
+
+    } else {
+        console.log("oki", res.body)
+
+    }
+})
