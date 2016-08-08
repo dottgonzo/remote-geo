@@ -6,6 +6,7 @@ let italy=require("./italy.json")
 
 const expect = require("chai").expect;
 
+const worldDB = "https://couchdb.kernel.online/public/geoworld";
 
 
 const pos0 = [37.533057, 15.060421]
@@ -19,7 +20,7 @@ let loc: Localize;
 
 before(function () {
 
-    loc = new Localize({ state: italy })
+    loc = new Localize({ state: italy, worldDB: worldDB })
 
 
 })
