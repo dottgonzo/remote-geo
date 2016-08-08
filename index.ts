@@ -344,11 +344,8 @@ export default class Localize {
         })
 
 
-        let cities: ICity[] = <ICity[]>_.take(_.orderBy(provinces, ['distance'], ['asc']), 2);
+        let cities: ICity[] = <ICity[]>_.take(_.orderBy(provinces, ['distance'], ['asc']), 10);
 
-        if (cities[0].distance * 1.4 > cities[0].distance) {
-            cities = [cities[0]]
-        }
 
         return cities
 
