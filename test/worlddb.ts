@@ -20,59 +20,57 @@ before(function () {
 
 
 })
+describe("test couchdb data", function () {
 
-describe("class instantiation with standards", function () {
-    it("validate worldDB conf", function () {
-        expect(loc.world).to.be.an('Array');
-        expect(loc.worldDB).to.be.a('string');
-        expect(loc.worldDB).to.eq(worldDB);
-        expect(loc.bigWorld).to.not.exist;
-        expect(loc.localization).to.not.exist;
-        expect(loc.state).to.not.exist;
-        expect(loc).to.be.ok;
-        expect(loc).to.be.an('Object');
+    describe("class instantiation with standards", function () {
+        it("validate worldDB conf", function () {
+            expect(loc.world).to.be.an('Array');
+            expect(loc.worldDB).to.be.a('string');
+            expect(loc.worldDB).to.eq(worldDB);
+            expect(loc.bigWorld).to.not.exist;
+            expect(loc.localization).to.not.exist;
+            expect(loc.state).to.not.exist;
+            expect(loc).to.be.ok;
+            expect(loc).to.be.an('Object');
 
-    })
-
-
-})
-
-describe("position is ok?", function () {
-    this.timeout(10000);
-
-    it("verificate working of localization", function (done) {
-        loc.setPosition(latlng).then((c) => {
-
-            expect(loc.state).to.be.an('Object');
-            expect(c).to.be.an('Array');
-            expect(c[0]).to.be.an('Object');
-            expect(c[0].nativeName).to.be.a('string');
-            done()
-        }).catch((c) => {
-            console.log(c)
-            expect(c).to.not.exsist
-            done()
-        })
-    })
-    it("verificate working of 2 localization", function (done) {
-
-        loc.setPosition(latlng2).then((c) => {
-
-            expect(loc.state).to.be.an('Object');
-            expect(c).to.be.an('Array');
-            expect(c[0]).to.be.an('Object');
-            expect(c[0].nativeName).to.be.a('string');
-            done();
-
-        }).catch((c) => {
-
-            console.log(c)
-            expect(c).to.not.exsist
-            done()
-            
         })
 
 
+    })
 
+    describe("position is ok?", function () {
+        this.timeout(30000);
+
+        it("verificate working of localization", function (done) {
+            loc.setPosition(latlng).then((c) => {
+
+                expect(loc.state).to.be.an('Object');
+                expect(c).to.be.an('Array');
+                expect(c[0]).to.be.an('Object');
+                expect(c[0].nativeName).to.be.a('string');
+                done()
+            }).catch((c) => {
+                done(Error(c))
+            })
+        })
+        it("verificate working of 2 localization", function (done) {
+
+            loc.setPosition(latlng2).then((c) => {
+
+                expect(loc.state).to.be.an('Object');
+                expect(c).to.be.an('Array');
+                expect(c[0]).to.be.an('Object');
+                expect(c[0].nativeName).to.be.a('string');
+                done();
+
+            }).catch((c) => {
+
+                done(Error(c))
+
+            })
+
+
+
+        })
     })
 })

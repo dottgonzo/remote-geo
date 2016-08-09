@@ -267,13 +267,14 @@ export default class Localize {
     }
 
 
-    reloadCurrentState(o: ILocalization) { //todo
+    reloadCurrentState(pos: ILocalization) { //todo
         let _this = this;
-        return new Promise<boolean>((resolve, reject) => {
+        return new Promise<ICity[]>((resolve, reject) => {
 
-            _this.getStates(o).then((s) => {
-                _this.state = s
-                resolve(true);
+            _this.getStates(pos).then((s) => {
+                _this.localization = pos;
+                _this.state = s;
+                resolve(_this.getPositionFromState(pos));
             }).catch((err) => {
                 reject(err);
             })
@@ -285,31 +286,21 @@ export default class Localize {
 
     setPosition(pos: ILocalization): Promise<ICity[]> {
         let _this = this;
-
         return new Promise<ICity[]>((resolve, reject) => {
             if (!(pos && pos.latitude && pos.longitude)) {
                 reject("No coords provided");
             } else {
 
-
-                function reload() {
-                    _this.reloadCurrentState(pos).then(() => {
-                        _this.localization = pos;
-                        resolve(_this.getPositionFromState(pos));
-                    }).catch((err) => {
-                        reject(err);
-                    })
-                }
-
                 if (_this.state) {
-                    let checkifInsideState = _this.checkifInsideState(pos)
+                    const checkifInsideState = _this.checkifInsideState(pos)
                     if (checkifInsideState) {
+                        _this.localization = pos;
                         resolve(<ICity[]>checkifInsideState);
                     } else {
-                        reload()
+                        return _this.reloadCurrentState(pos)
                     }
                 } else {
-                    reload()
+                    return _this.reloadCurrentState(pos)
                 }
             }
         })
@@ -321,10 +312,6 @@ export default class Localize {
 
         // livello nazionale
         let allprovinces: ICity[] = _this.getProvincesFromState(State);
-
-
-
-
 
         _.map(allprovinces, function (c) {
             c.distance = geo.getDistance({ latitude: c.latitude, longitude: c.longitude }, pos);
@@ -385,6 +372,7 @@ export default class Localize {
         return new Promise<Istate>((resolve, reject) => {
 
             const country = _this.getCountryFromPosition(pos);
+            let exists: any = false;
 
 
             if (_this.bigWorld) {
@@ -394,33 +382,46 @@ export default class Localize {
 
                         _.map(subcontinent.countries, function (c) {
                             if (c.name === country.name) {
-                                resolve(_this.getStateFromCountry(pos, c))
+                                exists = _this.getStateFromCountry(pos, c);
                             }
                         })
                     })
                 })
+                if (!exists) {
+                    reject("no country")
+                } else {
+                    resolve(exists)
 
+                }
             } else if (_this.remote) {
 
-
+                reject("no country")
 
 
 
             } else if (_this.worldDB) {
-
                 loadbBigWorldfromremotedb(_this.worldDB).then((world) => {
                     _.map(world, function (continent) {
                         _.map(continent.subcontinents, function (subcontinent) {
                             _.map(subcontinent.countries, function (c) {
                                 if (c.name === country.name) {
-                                    resolve(_this.getStateFromCountry(pos, c))
+                                    exists = _this.getStateFromCountry(pos, c);
                                 }
                             })
                         })
                     })
+                    if (!exists) {
+                        reject("no country")
+                    } else {
+                        resolve(exists)
 
+                    }
+
+                }).catch((err) => {
+                    reject(err)
                 })
             }
+
         })
     }
 
