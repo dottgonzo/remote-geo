@@ -3,7 +3,7 @@ import * as mocha from "mocha";
 
 const expect = require("chai").expect;
 
-const remote = "https://couchdb.kernel.online/public/geoworld";
+const remote = "https://emnetserver.kernel.online/position";
 
 const pos0 = [37.533057, 15.060421]
 const pos1 = [37.504192, 15.068489]
@@ -15,10 +15,7 @@ const latlng2 = { latitude: pos1[0], longitude: pos1[1] };
 let loc: Localize;
 
 before(function () {
-
     loc = new Localize({ remote: remote })
-
-
 })
 describe("test remote server", function () {
 

@@ -123,7 +123,7 @@ function loadcontryremotely(url: string, countryName: string): Promise<ICountry>
 
         let country: ICountry;
 
-        superagent.post(url).send({ countryname: countryName }).end(function (err, res) {
+        superagent.get(url + "/country/" + countryName).end(function (err, res) {
             if (err || !res.ok) {
                 reject(err)
             } else {
@@ -403,13 +403,11 @@ export default class Localize {
                 }
             } else if (_this.remote) {
 
-
-
-
-
-                reject("no country")
-
-
+                loadcontryremotely(_this.remote, countryName).then((co) => {
+                    resolve(co)
+                }).catch((err) => {
+                    reject(err)
+                })
 
             } else if (_this.worldDB) {
                 loadbBigWorldfromremotedb(_this.worldDB).then((world) => {
