@@ -297,10 +297,18 @@ export default class Localize {
                         _this.localization = pos;
                         resolve(<ICity[]>checkifInsideState);
                     } else {
-                        return _this.reloadCurrentState(pos)
+                        _this.reloadCurrentState(pos).then((s) => {
+                            resolve(s);
+                        }).catch((err) => {
+                            reject(err);
+                        })
                     }
                 } else {
-                    return _this.reloadCurrentState(pos)
+                    _this.reloadCurrentState(pos).then((s) => {
+                        resolve(s);
+                    }).catch((err) => {
+                        reject(err);
+                    })
                 }
             }
         })
@@ -394,6 +402,10 @@ export default class Localize {
 
                 }
             } else if (_this.remote) {
+
+
+
+
 
                 reject("no country")
 

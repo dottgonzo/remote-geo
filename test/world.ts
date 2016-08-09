@@ -3,7 +3,7 @@ import * as mocha from "mocha";
 
 const expect = require("chai").expect;
 
-const remote = "https://couchdb.kernel.online/public/geoworld";
+const bigWorld = require("./bigWorld");
 
 const pos0 = [37.533057, 15.060421]
 const pos1 = [37.504192, 15.068489]
@@ -16,18 +16,18 @@ let loc: Localize;
 
 before(function () {
 
-    loc = new Localize({ remote: remote })
+    loc = new Localize({ bigWorld: bigWorld })
 
 
 })
-describe("test remote server", function () {
+
+describe("test big World", function () {
 
     describe("class instantiation with standards", function () {
         it("validate worldDB conf", function () {
+            expect(loc.worldDB).to.not.exist;
+            expect(loc.bigWorld).to.eq(bigWorld);
             expect(loc.world).to.be.an('Array');
-            expect(loc.remote).to.be.a('string');
-            expect(loc.remote).to.eq(remote);
-            expect(loc.bigWorld).to.not.exist;
             expect(loc.localization).to.not.exist;
             expect(loc.state).to.not.exist;
             expect(loc).to.be.ok;
