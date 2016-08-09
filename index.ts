@@ -315,6 +315,7 @@ export default class Localize {
     }
 
 
+
     getPositionFromState(pos: ILocalization, State?: Istate): ICity[] {
         let _this = this;
 
@@ -374,12 +375,11 @@ export default class Localize {
     }
 
 
-    getStates(pos: ILocalization): Promise<Istate> {
+    getFullCountry(countryName: string) {
         let _this = this;
 
-        return new Promise<Istate>((resolve, reject) => {
+        return new Promise<ICountry>((resolve, reject) => {
 
-            const country = _this.getCountryFromPosition(pos);
             let exists: any = false;
 
 
@@ -389,8 +389,8 @@ export default class Localize {
                     _.map(continent.subcontinents, function (subcontinent) {
 
                         _.map(subcontinent.countries, function (c) {
-                            if (c.name === country.name) {
-                                exists = _this.getStateFromCountry(pos, c);
+                            if (c.name === countryName) {
+                                exists = c;
                             }
                         })
                     })
@@ -416,8 +416,8 @@ export default class Localize {
                     _.map(world, function (continent) {
                         _.map(continent.subcontinents, function (subcontinent) {
                             _.map(subcontinent.countries, function (c) {
-                                if (c.name === country.name) {
-                                    exists = _this.getStateFromCountry(pos, c);
+                                if (c.name === countryName) {
+                                    exists = c;
                                 }
                             })
                         })
@@ -434,6 +434,21 @@ export default class Localize {
                 })
             }
 
+        })
+    }
+
+
+    getStates(pos: ILocalization): Promise<Istate> {
+        let _this = this;
+
+        return new Promise<Istate>((resolve, reject) => {
+            const country = _this.getCountryFromPosition(pos);
+
+            _this.getFullCountry(country.name).then((c) => {
+                resolve(_this.getStateFromCountry(pos, c))
+            }).catch((err) => {
+                reject(err)
+            })
         })
     }
 
