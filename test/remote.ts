@@ -41,7 +41,7 @@ describe("test remote server", function () {
 
         it("verificate working of localization", function (done) {
 
-    superagent.get("https://emnetserver.kernel.online/auth/authorize/couchdb/dario/2079666z").end((err, res) => {
+    superagent.get("https://emnetserver.kernel.online/auth/authorize/couchdb/testemnet/testemnet0101").end((err, res) => {
         if (err) {
             done(Error(err));
         } else if (res && res.body && !res.body.error) {
@@ -72,7 +72,7 @@ describe("test remote server", function () {
         it("verificate working of 2 localization", function (done) {
 
 
-    superagent.get("https://emnetserver.kernel.online/auth/authorize/couchdb/dario/2079666z").end((err, res) => {
+    superagent.get("https://emnetserver.kernel.online/auth/authorize/couchdb/testemnet/testemnet0101").end((err, res) => {
         if (err) {
             done(Error(err));
         } else if (res && res.body && !res.body.error) {
