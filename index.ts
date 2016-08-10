@@ -118,19 +118,33 @@ function loadbBigWorldfromremotedb(url): Promise<IGeobuild[]> {
 
 }
 
-function loadcontryremotely(url: string, countryName: string): Promise<ICountry> {
+function loadcountryremotely(url: string, countryName: string, token?: string): Promise<ICountry> {
     return new Promise<ICountry>((resolve, reject) => {
 
         let country: ICountry;
-
-        superagent.get(url + "/country/" + countryName).end(function (err, res) {
-            if (err || !res.ok) {
-                reject(err)
-            } else {
-                country = res.body;
-                resolve(country)
+        if (token) {
+            function bearer(request) {
+                request.set('Authorization', 'Bearer ' + token);
             }
-        })
+            superagent.get(url + "/country/" + countryName).use(bearer).end(function (err, res) {
+                if (err || !res.ok) {
+                    reject(err)
+                } else {
+                    country = res.body;
+                    resolve(country)
+                }
+            })
+        } else {
+            superagent.get(url + "/country/" + countryName).end(function (err, res) {
+                if (err || !res.ok) {
+                    reject(err)
+                } else {
+                    country = res.body;
+                    resolve(country)
+                }
+            })
+        }
+
     })
 }
 
@@ -267,11 +281,11 @@ export default class Localize {
     }
 
 
-    reloadCurrentState(pos: ILocalization) { //todo
+    reloadCurrentState(pos: ILocalization,token?:string) { //todo
         let _this = this;
         return new Promise<ICity[]>((resolve, reject) => {
 
-            _this.getStates(pos).then((s) => {
+            _this.getStates(pos,token).then((s) => {
                 _this.localization = pos;
                 _this.state = s;
                 resolve(_this.getPositionFromState(pos));
@@ -284,7 +298,7 @@ export default class Localize {
         })
     }
 
-    setPosition(pos: ILocalization): Promise<ICity[]> {
+    setPosition(pos: ILocalization,token?:string): Promise<ICity[]> {
         let _this = this;
         return new Promise<ICity[]>((resolve, reject) => {
             if (!(pos && pos.latitude && pos.longitude)) {
@@ -297,14 +311,14 @@ export default class Localize {
                         _this.localization = pos;
                         resolve(<ICity[]>checkifInsideState);
                     } else {
-                        _this.reloadCurrentState(pos).then((s) => {
+                        _this.reloadCurrentState(pos,token).then((s) => {
                             resolve(s);
                         }).catch((err) => {
                             reject(err);
                         })
                     }
                 } else {
-                    _this.reloadCurrentState(pos).then((s) => {
+                    _this.reloadCurrentState(pos,token).then((s) => {
                         resolve(s);
                     }).catch((err) => {
                         reject(err);
@@ -375,7 +389,7 @@ export default class Localize {
     }
 
 
-    getFullCountry(countryName: string) {
+    getFullCountry(countryName: string, token?: string) {
         let _this = this;
 
         return new Promise<ICountry>((resolve, reject) => {
@@ -403,7 +417,7 @@ export default class Localize {
                 }
             } else if (_this.remote) {
 
-                loadcontryremotely(_this.remote, countryName).then((co) => {
+                loadcountryremotely(_this.remote, countryName, token).then((co) => {
                     resolve(co)
                 }).catch((err) => {
                     reject(err)
@@ -436,13 +450,13 @@ export default class Localize {
     }
 
 
-    getStates(pos: ILocalization): Promise<Istate> {
+    getStates(pos: ILocalization,token?:string): Promise<Istate> {
         let _this = this;
 
         return new Promise<Istate>((resolve, reject) => {
             const country = _this.getCountryFromPosition(pos);
 
-            _this.getFullCountry(country.name).then((c) => {
+            _this.getFullCountry(country.name,token).then((c) => {
                 resolve(_this.getStateFromCountry(pos, c))
             }).catch((err) => {
                 reject(err)
