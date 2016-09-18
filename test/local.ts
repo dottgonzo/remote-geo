@@ -77,5 +77,18 @@ describe("test local geo server", function () {
 
 
         })
+
+        it("verificate working of calc", function () {
+
+            const calc= loc.calc({latitude:37.515528,longitude:15.0849687},{latitude:37.4272443,longitude:15.0188791})
+            
+                expect(calc).to.be.a('number');
+     
+                     expect(calc).to.be.gt(0);
+
+
+        })
+
+
     })
 })

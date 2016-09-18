@@ -281,11 +281,11 @@ export default class Localize {
     }
 
 
-    reloadCurrentState(pos: ILocalization,token?:string) { //todo
+    reloadCurrentState(pos: ILocalization, token?: string) { //todo
         let _this = this;
         return new Promise<ICity[]>((resolve, reject) => {
 
-            _this.getStates(pos,token).then((s) => {
+            _this.getStates(pos, token).then((s) => {
                 _this.localization = pos;
                 _this.state = s;
                 resolve(_this.getPositionFromState(pos));
@@ -298,7 +298,7 @@ export default class Localize {
         })
     }
 
-    setPosition(pos: ILocalization,token?:string): Promise<ICity[]> {
+    setPosition(pos: ILocalization, token?: string): Promise<ICity[]> {
         let _this = this;
         return new Promise<ICity[]>((resolve, reject) => {
             if (!(pos && pos.latitude && pos.longitude)) {
@@ -311,14 +311,14 @@ export default class Localize {
                         _this.localization = pos;
                         resolve(<ICity[]>checkifInsideState);
                     } else {
-                        _this.reloadCurrentState(pos,token).then((s) => {
+                        _this.reloadCurrentState(pos, token).then((s) => {
                             resolve(s);
                         }).catch((err) => {
                             reject(err);
                         })
                     }
                 } else {
-                    _this.reloadCurrentState(pos,token).then((s) => {
+                    _this.reloadCurrentState(pos, token).then((s) => {
                         resolve(s);
                     }).catch((err) => {
                         reject(err);
@@ -450,13 +450,13 @@ export default class Localize {
     }
 
 
-    getStates(pos: ILocalization,token?:string): Promise<Istate> {
+    getStates(pos: ILocalization, token?: string): Promise<Istate> {
         let _this = this;
 
         return new Promise<Istate>((resolve, reject) => {
             const country = _this.getCountryFromPosition(pos);
 
-            _this.getFullCountry(country.name,token).then((c) => {
+            _this.getFullCountry(country.name, token).then((c) => {
                 resolve(_this.getStateFromCountry(pos, c))
             }).catch((err) => {
                 reject(err)
@@ -510,6 +510,11 @@ export default class Localize {
 
         return provinces
 
+    }
+
+
+    calc(pos0: IBoundary, pos1: IBoundary): number {
+        return geo.getDistance(pos0, pos1)
     }
 
 }
